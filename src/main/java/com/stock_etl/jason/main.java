@@ -1,69 +1,92 @@
 package com.stock_etl.jason;
-import com.stock_etl.jason.util.kafka.Producer;
-import io.github.cdimascio.dotenv.Dotenv;
+
 import com.stock_etl.jason.util.webparser.StockParser;
-
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.lang.Runnable;
-
 import com.stock_etl.jason.pojo.StockData;
+import com.stock_etl.jason.util.kafka.Producer;
 
-public class main {
-    
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+
+public class main { // 建議類別名稱大寫 Main
     public static void main(String[] args) {
-
-        SendPrice.setStockSymbol("2330.TW");
-        
-        // 創建定時任務執行器
-        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-        
-        // 設置定期任務：每30秒執行一次
-        scheduler.scheduleAtFixedRate(new SendPrice(), 0, 30, TimeUnit.SECONDS); // 初始延遲0秒，之後每30秒執行一次
-        
-        // 添加關閉鉤子，確保程式優雅關閉
-        Runtime.getRuntime().addShutdownHook(new Thread(new Close())) ;
-        
-        System.out.println("股價爬取任務已啟動，每30秒執行一次...");
-        System.out.println("按 Ctrl+C 停止程式");
+        Send send = new Send();
+        send.ChooseStock();
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(); 
+        Runnable task = () -> {
+            send.SendInformation();
+        };
+        scheduler.scheduleAtFixedRate(task, 0, 10, TimeUnit.SECONDS);
     }
 }
 
-class SendPrice implements Runnable{
-    private static Producer producer = new Producer("localhost:29092");
-    private static String stockSymbol = "0050.TW";
-    private static StockParser parser = new StockParser("https://tw.stock.yahoo.com/quote/" + stockSymbol);
-    @Override
-    public void run() {
-        try {
-            System.out.println("開始執行股價爬取任務: " + java.time.LocalDateTime.now());
-            
-            String price = SendPrice.parser.parser_price();
-            producer.send("stock", stockSymbol, new StockData(stockSymbol, price).toString());
-            producer.producer.flush();
-            
-            System.out.println("股價資料已發送: " + stockSymbol + " = " + price);
-            
-        } catch (Exception e) {
-            System.err.println("執行任務時發生錯誤: " + e.getMessage());
-            e.printStackTrace();
+
+class Send{
+
+    private List<String> name;
+
+    public void ChooseStock(){
+
+        Scanner scanner = new Scanner(System.in);
+        name = new ArrayList<String>();
+        System.out.println("=== 股票資料抓取系統 ===");
+        System.out.println("請輸入股票代碼 (例如: 2330.TW)，輸入 'done' 結束並開始傳送：");
+
+        // 1. 收集使用者輸入
+        while (true) {
+            System.out.print("請輸入代碼: ");
+            String input = scanner.nextLine().trim().toUpperCase();
+
+            if (input.equalsIgnoreCase("done")) {
+                break;
+            }
+
+            if (input.isEmpty()) {
+                System.out.println("[錯誤] 輸入不能為空。");
+                continue;
+            }
+
+            name.add(input); // 將輸入的代碼加入 List
         }
     }
+    public void SendInformation(){
+        try {
+            // 2. 檢查是否有輸入股票，有的話才啟動 Producer
+            if (!name.isEmpty()) {
+                Producer producer = new Producer("localhost:29092");
+                StockData stockData = new StockData();
 
-    public static Producer getProducer() {
-        return producer;
-    }
+                System.out.println("\n開始抓取資料並發送至 Kafka...");
 
-    public static void setStockSymbol(String stockSymbol) {
-        SendPrice.stockSymbol = stockSymbol;
-        SendPrice.parser = new StockParser("https://tw.stock.yahoo.com/quote/" + stockSymbol);
+                for (String s : name) {
+                    try {
+                        StockParser parser = StockParser.getInstance(s);
+                        Map<String, String> price = parser.parser_price();
+                        
+                        System.out.println("股票: " + s + " | 價格: " + price.get("price") + " | 名稱: " + price.get("name"));
+                        
+                        stockData.setData(price.get("name"), price.get("price"));
+                        String data = stockData.toString();
+                        
+                        producer.send("stock", s, data);
+                    } catch (Exception e) {
+                        System.out.println("[錯誤] 處理股票 " + s + " 時發生問題: " + e.getMessage());
+                    }
+                }
+                producer.close();
+                System.out.println("所有資料發送完畢。");
+            } else {
+                System.out.println("未輸入任何股票，程式結束。");
+            }
+
+        } catch (Exception e) {
+            System.out.println("發生非預期錯誤: " + e.getMessage());
+            e.printStackTrace(); 
+        }
     }
 }
-
-class Close implements Runnable{
-    @Override
-    public void run() {
-        System.out.println("close");     
-    }
-}  
