@@ -11,6 +11,10 @@ import java.util.Scanner;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.flink.api.common.time.Time;
+import java.sql.*;
+
 import java.util.ArrayList;
 
 public class main { // 建議類別名稱大寫 Main
@@ -66,11 +70,11 @@ class Send{
                 for (String s : name) {
                     try {
                         StockParser parser = StockParser.getInstance(s);
-                        Map<String, String> price = parser.parser_price();
+                        Map<Object, Object> price = parser.parser_price();
                         
                         System.out.println("股票: " + s + " | 價格: " + price.get("price") + " | 名稱: " + price.get("name"));
                         
-                        stockData.setData(price.get("name"), price.get("price"));
+                        stockData.setData((String) price.get("name"), (String) price.get("price"), (java.sql.Time) price.get("time"));
                         String data = stockData.toString();
                         
                         producer.send("stock", s, data);

@@ -2,15 +2,15 @@ package com.stock_etl.jason.pojo;
 
 import java.sql.Time;
 
-public class StockData {
+public class StockDataFlink {
     public String name;
-    public String price;
+    public Double price;
     public Time time;
 
-    public StockData() {
+    public StockDataFlink() {
     }
 
-    public void setData(String name, String price, Time time){
+    public void setData(String name, Double price, Time time){
         this.name = name;
         this.price = price;
         this.time = time;

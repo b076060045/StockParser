@@ -7,6 +7,7 @@ import org.jsoup.nodes.Document;
 import com.stock_etl.jason.main;
 
 import java.io.IOException;
+import java.sql.Time;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -45,10 +46,11 @@ public class StockParser {
         return this.symbol;
     }
     
-    public Map<String, String> parser_price() throws IOException {
+    public Map<Object, Object> parser_price() throws IOException {
         Document doc = this.conn.get();
         String name = doc.selectFirst("h1[class*='C($c-link-text)']").text();
         String price = doc.selectFirst("span[class*='Fz(32px)'][class*='Fw(b)']").text();
-        return Map.of("name", name, "price", price);
+        Time time = new Time(System.currentTimeMillis());
+        return Map.of("name", name, "price", price, "time", time);
     }
 };
