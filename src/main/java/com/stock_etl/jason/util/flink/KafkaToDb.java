@@ -133,7 +133,7 @@ class WordCountAggregator implements AggregateFunction<StockDataFlink, Long, Lon
 }
 
 class AverageAccumulator {
-    long sum = 0;
+    Double sum = 0.0;
     long count = 0;
 }
 
@@ -154,7 +154,7 @@ class PriceAverageAggregator implements AggregateFunction<StockDataFlink, Averag
     @Override
     public Double getResult(AverageAccumulator acc) {
         // 防止除以 0 的錯誤
-        return acc.count == 0 ? 0.0 : (double) acc.sum / acc.count;
+        return acc.count == 0 ? 0.0 : acc.sum / acc.count;
     }
 
     @Override
