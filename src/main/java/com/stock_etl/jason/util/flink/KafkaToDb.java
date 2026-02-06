@@ -103,27 +103,6 @@ public class KafkaToDb {
     }
 }
 
-class UpperCaseMap implements MapFunction<String, String> {
-    @Override
-    public String map(String value) throws Exception {
-        return value;
-    }
-}
-
-class LowerCaseMap implements MapFunction<String, String> {
-    @Override
-    public String map(String value) throws Exception {
-        return value.toLowerCase();
-    }
-}
-
-class MyKey implements KeySelector<String, String> {
-    @Override
-    public String getKey(String value) throws Exception {
-        return value;
-    }
-}
-
 // 1. 修改 WordCountAggregator，輸出單純的 Long
 class WordCountAggregator implements AggregateFunction<StockDataFlink, Long, Long> {
     @Override public Long createAccumulator() { return 0L; }
